@@ -1,13 +1,13 @@
 import copy
 import math
-from time import time
-
+import time
 import snap
 import random
 
 K = 100
 
 
+# A simple graph used for testing
 def testGraph():
     testGraph = snap.TUNGraph.New()
     for i in range(1, 7):
@@ -22,7 +22,7 @@ def generateGraph():
     # generate a random graph
     #G = snap.GenRndGnm(snap.TUNGraph, 1000, 2000)
 
-    #G = testGraph()
+    # G = testGraph()
 
     G = snap.LoadEdgeList(snap.TUNGraph, "CA-GrQc.txt", 0, 1)
 
@@ -36,15 +36,27 @@ def generateGraph():
     return G, GCost1, GCost2
 
 
+# total cost of Seed set
+def costSeedSet(S, cost):
+    totalCost = 0
+    for si in S:
+        totalCost += cost[si]
+
+    return totalCost
+
+
 # cost function random, generate a random cost from 1 to 10
 def costFunctionRnd():
-    p = random.randint(1, 10)
+    p = random.randint(1, 30)
     return p
 
 
 # cost function, degree of node u/2
 def costFunctionDegree(degree):
-    return degree / 2
+    if degree != 0:
+        return degree / 2
+    else:
+        return 1
 
 
 # First algorithm
@@ -77,6 +89,7 @@ def function2(S):
     return sum
 
 
+# Find Seed Set, Greedy solution. Recall function1 and function2
 def CostSeedsGreedy(cost, function):
     Sd = []
     costSd = 0
@@ -102,6 +115,7 @@ def CostSeedsGreedy(cost, function):
     return Sd
 
 
+# Influence diffusion
 def InfluenceDiffusionAlgorithm(S, r):
     Sd = copy.deepcopy(S)
     Sprev = copy.deepcopy(S)
@@ -123,16 +137,52 @@ def InfluenceDiffusionAlgorithm(S, r):
     return Sd
 
 
+# Launch test and save the results on files
+def launchTest(GC, testname):
+    S1, S2, S3 = [], [], []
+    Sd1, Sd2, Sd3 = [], [], []
+    for k in Ks:
+        K = k
+        S = CostSeedsGreedy(GC, function1)
+        Sd = InfluenceDiffusionAlgorithm(S, 100)
+        S1.append(S)
+        Sd1.append(Sd)
+
+        S = CostSeedsGreedy(GC, function2)
+        Sd = InfluenceDiffusionAlgorithm(S, 100)
+        S2.append(S)
+        Sd2.append(Sd)
+
+        S3.append(S)
+        Sd3.append(Sd)
+
+    fileInfluensed = open(f"Results/resultInfluensed{testname}.csv", mode='a')
+    fileSeedSet = open(f"Results/sizeSeedSet{testname}.csv", mode='a')
+    for i in range(0, len(Ks)):
+        fileInfluensed.write(f"\n{Ks[i]},{len(Sd1[i])},{len(Sd2[i])},{len(Sd3[i])}")
+        fileSeedSet.write(f"\n{Ks[i]},{len(S1[i])},{len(S2[i])},{len(S3[i])}")
+    fileInfluensed.close()
+    fileSeedSet.close()
+
+
 graph, GC1, GC2 = generateGraph()
 
 # Algorithm 1
-function = function1
-startTime = time()
-S = CostSeedsGreedy(GC2, function)
-print("tempo per S = ", time()-startTime)
-startTime = time()
-Sd = InfluenceDiffusionAlgorithm(S, 100)
-print("tempo spread S = ", time()-startTime)
-print("Random\nnodi in Seed set: ", S)
-print("nodi in S: ", Sd)
-print("numero di nodi in S: ", len(Sd))
+#function = function1
+#startTime = time.perf_counter()
+#S = CostSeedsGreedy(GC2, function)
+#print("tempo per S = ", time.perf_counter() - startTime)
+#startTime = time.perf_counter()
+#Sd = InfluenceDiffusionAlgorithm(S, 100)
+#print("tempo spread S = ", time.perf_counter() - startTime)
+#print("Random\nnodi in Seed set: ", S)
+#print("nodi in S: ", Sd)
+#print("numero di nodi in S: ", len(Sd))
+#cost = costSeedSet(S, GC2)
+#print(f"total cost of seedset {cost}")
+
+
+Ks = [10, 5]
+
+launchTest(GC1, "CostRandom")
+launchTest(GC2, "CostDegree")
