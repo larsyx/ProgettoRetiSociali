@@ -28,6 +28,28 @@ def readfile(filename):
             ALG2.append(int(riga[2]))
             ALG3.append(int(riga[3]))
             ALG4.append(int(riga[4]))
+            
+def readfiles(seedset_size_filename, influenced_filename):
+    with open(f"Results/{seedset_size_filename}", mode='r') as seedset_file:
+        with open(f"Results/{influenced_filename}", mode='r') as influenced_file:
+            seedset_reader = csv.reader(seedset_file, delimiter=',')
+            influenced_reader = csv.reader(influenced_file, delimiter=',')
+            first = True
+            for riga in zip(influenced_reader, seedset_reader):
+                if first:
+                    K.clear()
+                    ALG1.clear()
+                    ALG2.clear()
+                    ALG3.clear()
+                    ALG4.clear()
+                    first = False
+                    continue
+
+                K.append(float(riga[0][0]))
+                ALG1.append(round(float(riga[0][1])/float(riga[1][1]), 1))
+                ALG2.append(round(float(riga[0][2])/float(riga[1][2]), 1))
+                ALG3.append(round(float(riga[0][3])/float(riga[1][3]), 1))
+                ALG4.append(round(float(riga[0][4])/float(riga[1][4]), 1))
 
 
 def plotInfluenced(filename, title):
@@ -46,10 +68,14 @@ def plotInfluenced(filename, title):
 
     # plt.show()
     plt.savefig(f"Results/Plots/{title}.pdf", transparent=True, dpi='figure')
+    
 
 
-def vertical_bars_plot(filename, title):
-    readfile(filename)
+def vertical_bars_plot(filename, title, single_file: bool = True):
+    if single_file:
+        readfile(filename)
+    else:
+        readfiles(filename, filename.replace("sizeSeedSet", "resultInfluenced"))
 
     x = list(range(len(K))) # the label locations
     x[1] += 0.2
@@ -89,15 +115,19 @@ def vertical_bars_plot(filename, title):
     # plt.show()
     fig.savefig(f"Results/Plots/{title}.pdf", transparent=True, dpi='figure')
 
-# Random
-vertical_bars_plot("resultInfluencedCostRandom.csv", "Influenced_Random")
-vertical_bars_plot("sizeSeedSetCostRandom.csv", "SeedSetSize_Random")
+# # Random
+# vertical_bars_plot("resultInfluencedCostRandom.csv", "Influenced_Random")
+# vertical_bars_plot("sizeSeedSetCostRandom.csv", "SeedSetSize_Random")
 
-# Degree
-vertical_bars_plot("resultInfluencedCostDegree.csv", "Influenced_Degree")
-vertical_bars_plot("sizeSeedSetCostDegree.csv", "SeedSetSize_Degree")
+# # Degree
+# vertical_bars_plot("resultInfluencedCostDegree.csv", "Influenced_Degree")
+# vertical_bars_plot("sizeSeedSetCostDegree.csv", "SeedSetSize_Degree")
 
-# Constant
-vertical_bars_plot("resultInfluencedCostConst.csv", "Infleunced_Constant")
-vertical_bars_plot("sizeSeedSetCostConst.csv", "SeedSetSize_Constant")
+# # Constant
+# vertical_bars_plot("resultInfluencedCostConst.csv", "Infleunced_Constant")
+# vertical_bars_plot("sizeSeedSetCostConst.csv", "SeedSetSize_Constant")
 
+# Ratios
+vertical_bars_plot("sizeSeedSetCostConst.csv", "Constant_Ratio", False)
+vertical_bars_plot("sizeSeedSetCostDegree.csv", "Degree_Ratio", False)
+vertical_bars_plot("sizeSeedSetCostRandom.csv", "Random_Ratio", False)
