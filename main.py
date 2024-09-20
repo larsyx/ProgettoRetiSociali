@@ -1,5 +1,6 @@
 import copy
 import math
+import sys
 import snap
 import random
 import math
@@ -29,11 +30,13 @@ def generateNodeCosts(graph):
     # Create Dictionary to assign the cost of each node
     GCost1 = {}
     GCost2 = {}
+    GCost3 = {}
     for node in graph.Nodes():
         GCost1[node.GetId()] = costFunctionRnd()
         GCost2[node.GetId()] = costFunctionDegree(node.GetDeg())
-
-    return GCost1, GCost2
+        # GCost3[node.GetId()] = costFunctionClustCf(snap.GetNodeClustCf(graph, node.GetId()))
+        GCost3[node.GetId()] = 10
+    return GCost1, GCost2, GCost3
 
 # Get Degree Centrality of each node in the graph, iterating over all nodes and getting the degree
 def getDegreeCentrality(graph):
@@ -57,12 +60,15 @@ def costSeedSet(S, cost):
 
     return totalCost
 
-
 # cost function random, generate a random cost from 1 to 10
 def costFunctionRnd():
-    p = random.randint(1, 30)
+    p = random.randint(1, 40)
     return p
 
+# cost function, clustering coefficient of node u transposed in range epsilon - (40 + epsilon),
+# just 3 decimal places, no zeroes
+def costFunctionClustCf(clustCf):
+    return math.ceil((((clustCf if clustCf > 0 else EPSILON) * 40) + 1) * 1000) / 1000
 
 # cost function, degree of node u/2
 def costFunctionDegree(degree):
@@ -129,10 +135,10 @@ def ourAlgorithm(graph, cost: dict, budget, choosen_centrality_measure, use_rati
 
     if use_ratios:
         # Sort the nodes by the ratio of the chosen centrality measure to the cost
-        available_nodes.sort(key=lambda node: choosen_centrality_measure[node.GetId()] / cost[node.GetId()], reverse=True)
+        available_nodes.sort(key=lambda nodeId: choosen_centrality_measure[nodeId] / cost[nodeId], reverse=True)
     else:
         # Sort the nodes by the chosen centrality measure
-        available_nodes.sort(key=lambda x: choosen_centrality_measure[x], reverse=True)
+        available_nodes.sort(key=lambda nodeId: choosen_centrality_measure[nodeId], reverse=True)
     
     # Generate Seed Set, iteratively
     seed_set: list = []
@@ -143,8 +149,8 @@ def ourAlgorithm(graph, cost: dict, budget, choosen_centrality_measure, use_rati
         if total_cost + node_cost <= budget:
             seed_set.append(node_id)
             total_cost += node_cost
-        else:
-            break  # Stop when budget is exceeded
+            if total_cost >= budget:
+                break  # Stop when budget is exceeded
     
     return seed_set
 
@@ -172,66 +178,79 @@ def InfluenceDiffusionAlgorithm(S, r):
 
 
 # Launch test and save the results on files
-def launchTest(graph, graph_costs, choosen_centrality_measure_set, testname):
-    S1, S2, S3 = [], [], []
-    Sd1, Sd2, Sd3 = [], [], []
-    for budget in budgets_to_try:
-        print(f"\nTest '{testname}' with budget {budget}:")
-        print("\nGenerating Seed Set with Algorithm1, Function 1..")
-        S = CostSeedsGreedy(graph, graph_costs, budget, function1)
-        print("Algorithm1, Function 1 done. Next..")
-        print("Calculating Influence Diffusion..")
-        Sd = InfluenceDiffusionAlgorithm(S, nIterations)
-        S1.append(S)
-        Sd1.append(Sd)
-        print("Influence Diffusion done. Next..")
+def launchTest(graph, graph_costs, betweeness_set, degree_centrality_set, testname):
+    S1, S2, S3, S4 = [], [], [], []
+    Sd1, Sd2, Sd3, Sd4 = [], [], [], []
+    for budget in BUDGETS_TO_TRY:
+        # print(f"\nTest '{testname}' with budget {budget}:")
+        # print("\nGenerating Seed Set with Algorithm1, Function 1..")
+        # S = CostSeedsGreedy(graph, graph_costs, budget, function1)
+        # print("Algorithm1, Function 1 done. Next..")
+        # print("Calculating Influence Diffusion..")
+        # Sd = InfluenceDiffusionAlgorithm(S, N_ITERATIONS)
+        # S1.append(S)
+        # Sd1.append(Sd)
+        # print("Influence Diffusion done. Next..")
 
-        print("\nGenerating Seed Set with Algorithm1, Function 2..")
-        S = CostSeedsGreedy(graph, graph_costs, budget, function2)
-        print("Algorithm1, Function 2 done. Next..")
-        print("Calculating Influence Diffusion..")
-        Sd = InfluenceDiffusionAlgorithm(S, nIterations)
-        S2.append(S)
-        Sd2.append(Sd)
-        print("Influence Diffusion done. Next..")
+        # print("\nGenerating Seed Set with Algorithm1, Function 2..")
+        # S = CostSeedsGreedy(graph, graph_costs, budget, function2)
+        # print("Algorithm1, Function 2 done. Next..")
+        # print("Calculating Influence Diffusion..")
+        # Sd = InfluenceDiffusionAlgorithm(S, N_ITERATIONS)
+        # S2.append(S)
+        # Sd2.append(Sd)
+        # print("Influence Diffusion done. Next..")
 
-        print("\nGenerating Seed Set with Our Algorithm..")
-        S = ourAlgorithm(graph, graph_costs, budget, choosen_centrality_measure_set)
+        # print("\nGenerating Seed Set with Our Algorithm, Degree Centrality..")
+        # S = ourAlgorithm(graph, graph_costs, budget, degree_centrality_set)
+        # print("Our Algorithm done. Next..")
+        # print("Calculating Influence Diffusion..")
+        # Sd = InfluenceDiffusionAlgorithm(S, N_ITERATIONS)
+        # S3.append(S)
+        # Sd3.append(Sd)
+        # print("Influence Diffusion done. Next..")
+        
+        print("\nGenerating Seed Set with Our Algorithm, Betweeness Centrality..")
+        S = ourAlgorithm(graph, graph_costs, budget, betweeness_set)
         print("Our Algorithm done. Next..")
         print("Calculating Influence Diffusion..")
-        Sd = InfluenceDiffusionAlgorithm(S, nIterations)
-        S3.append(S)
-        Sd3.append(Sd)
+        Sd = InfluenceDiffusionAlgorithm(S, N_ITERATIONS)
+        S4.append(S)
+        Sd4.append(Sd)
         print("Influence Diffusion done. Next..")
 
-    fileInfluenced = open(f"Results/resultInfluensed{testname}.csv", mode='a')
+    fileInfluenced = open(f"Results/resultInfluenced{testname}.csv", mode='a')
     fileSeedSet = open(f"Results/sizeSeedSet{testname}.csv", mode='a')
-    for i in range(0, len(budgets_to_try)):
-        fileInfluenced.write(f"\n{budgets_to_try[i]},{len(Sd1[i])},{len(Sd2[i])},{len(Sd3[i])}")
-        fileSeedSet.write(f"\n{budgets_to_try[i]},{len(S1[i])},{len(S2[i])},{len(S3[i])}")
+    for i in range(0, len(BUDGETS_TO_TRY)):
+        # fileInfluenced.write(f"\n{BUDGETS_TO_TRY[i]},{len(Sd1[i])},{len(Sd2[i])},{len(Sd3[i])},{len(Sd4[i])}")
+        # fileSeedSet.write(f"\n{BUDGETS_TO_TRY[i]},{len(S1[i])},{len(S2[i])},{len(S3[i])},{len(S4[i])}")
+        fileInfluenced.write(f"\n{BUDGETS_TO_TRY[i]},{len(Sd4[i])}")
+        fileSeedSet.write(f"\n{BUDGETS_TO_TRY[i]},{len(S4[i])}")
     fileInfluenced.close()
     fileSeedSet.close()
 
 
 # Useful constants
-budgets_to_try = [10, 5]
-nIterations = 100
+BUDGETS_TO_TRY = [100, 50, 10]
+N_ITERATIONS = 100
+EPSILON = sys.float_info.epsilon
 
 if __name__ == "__main__":
     print("Loading graph..")
-    graph = randomGraph()
+    graph = graphFromFile()
     print("Done. Next..\n")
     
     print("Calculating costs..")
-    random_costs, degree_costs = generateNodeCosts(graph)
+    random_costs, degree_costs, const_costs = generateNodeCosts(graph)
     print("Done. Next..\n")
 
-    print("Calculating Centrality..")
-    # choosen_centrality_measure = getBetweennessCentrality(graph)
-    choosen_centrality_measure_set = getDegreeCentrality(graph)
+    print("Calculating Centralities..")
+    betweeness_set = getBetweennessCentrality(graph)
+    degree_centrality_set = getDegreeCentrality(graph)
     print("Done. Next..\n")
 
     print("Launching tests..")
-    # launchTest(graph, random_costs, "CostRandom")
-    launchTest(graph, degree_costs, choosen_centrality_measure_set, "CostDegree")
+    # launchTest(graph, const_costs, betweeness_set, degree_centrality_set, "CostConst")
+    launchTest(graph, random_costs, betweeness_set, degree_centrality_set, "CostRandom")
+    # launchTest(graph, degree_costs, betweeness_set, degree_centrality_set, "CostDegree")
     print("Done. Results saved in Results folder.")
