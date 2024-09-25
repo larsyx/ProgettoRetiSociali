@@ -1,0 +1,1 @@
+All the details about the activities performed are provided in the [report](https://github.com/larsyx/ProgettoRetiSociali/blob/master/MajorityCascadeProjectReport.pdf).
